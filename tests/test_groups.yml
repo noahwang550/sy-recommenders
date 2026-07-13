@@ -1,0 +1,20 @@
+# Wrapper-local test groups (independent of upstream tests/test_groups.yml)
+group_core_001:
+  - tests/test_deps.py
+  - tests/test_server.py
+  - tests/test_serialization.py
+  - tests/test_data_tools.py
+  - tests/test_split_tools.py
+  - tests/test_eval_tools.py
+  - tests/test_ranking_tools.py
+  - tests/test_state.py
+  - tests/test_auth.py
+  - tests/test_http_transport.py
+  - tests/test_script_help.py
+
+group_core_002:
+  - tests/test_smoke_movielens.py
+
+group_gpu_001:
+  - tests/test_smoke_ncf_movielens.py
+  - tests/test_smoke_sasrec_amazon.py

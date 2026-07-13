@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "recommenders-mcp-stdio": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "MCP_TRANSPORT=stdio",
+        "recommenders-mcp:core"
+      ]
+    },
+    "recommenders-mcp-http": {
+      "url": "http://localhost:8080",
+      "headers": {
+        "Authorization": "Bearer ${MCP_HTTP_TOKEN}"
+      }
+    }
+  }
+}

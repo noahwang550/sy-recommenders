@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  recommenders-mcp-stdio:
+    build:
+      context: .
+      target: core
+      args:
+        COMPUTE: core
+    image: recommenders-mcp:core
+    container_name: recommenders-mcp-stdio
+    stdin_open: true
+    tty: true
+    environment:
+      - MCP_TRANSPORT=stdio
+      - MCP_LOG_LEVEL=INFO
+    volumes:
+      - mcp_state:/app/state
+    command: ["recommenders-mcp"]
+
+  recommenders-mcp-http:
+    build:
+      context: .
+      target: core
+      args:
+        COMPUTE: core
+    image: recommenders-mcp:core
+    container_name: recommenders-mcp-http
+    ports:
+      - "8080:8080"
+    environment:
+      - MCP_TRANSPORT=http
+      - MCP_HTTP_PORT=8080
+      - MCP_HTTP_TOKEN=${MCP_HTTP_TOKEN:?MCP_HTTP_TOKEN must be set}
+      - MCP_LOG_LEVEL=INFO
+    volumes:
+      - mcp_state:/app/state
+    command: ["recommenders-mcp"]
+
+volumes:
+  mcp_state:

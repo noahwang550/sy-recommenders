@@ -17,6 +17,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.mark.parametrize("script", [
     "sar_movielens.py",
+    "sar_custom.py",
     "ncf_movielens.py",
     "sasrec_amazon.py",
     "lightgbm_tinycriteo.py",

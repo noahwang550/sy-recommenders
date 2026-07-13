@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "recommenders-ai"
-version = "0.1.0"
+version = "0.1.2"
 description = "MCP server + Agent Skill wrapper for Microsoft Recommenders v1.2.1"
 readme = "README.md"
 license = { text = "MIT" }
@@ -21,6 +21,7 @@ classifiers = [
 ]
 dependencies = [
     "recommenders>=1.2.1,<2",
+    "numpy<2",
     "mcp>=1.0,<2",
     "pydantic>=2",
     "fastapi>=0.110",

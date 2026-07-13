@@ -14,6 +14,7 @@ group_core_001:
 
 group_core_002:
   - tests/test_smoke_movielens.py
+  - tests/test_smoke_sar_custom.py
 
 group_gpu_001:
   - tests/test_smoke_ncf_movielens.py

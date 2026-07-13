@@ -41,6 +41,8 @@ pip install -e ".[gpu,dev]"
 pip install -e ".[all]"
 ```
 
+> **Note**: `numpy<2` is pinned in `pyproject.toml` because recommenders v1.2.1 uses `np.NaN` (removed in NumPy 2.0). `pip install recommenders-ai` resolves this automatically.
+
 #### 2. Docker pull / build
 
 ```bash
@@ -103,6 +105,12 @@ Output (SAR Movielens 100k baseline, TOL ±0.05):
 MODEL_HANDLE=aabbccddeeff00112233445566778899
 ```
 
+To train SAR on **your own data** instead of Movielens:
+
+```bash
+python skill/scripts/sar_custom.py --data your_ratings.parquet --col-user user_id --col-item item_id --col-rating score --top-k 10 --model-out
+```
+
 ### Environment variables
 
 | Variable | Default | Description |
@@ -140,7 +148,7 @@ See [`skill/SKILL.md`](skill/SKILL.md) for the capability matrix, playbook index
 ### Documentation
 
 - [`docs/tools_reference.md`](docs/tools_reference.md) — 12 MCP tool signatures with JSON examples and error codes.
-- [`docs/usage_examples.md`](docs/usage_examples.md) — 5 agent conversation flows (SAR / NCF / SASRec / LightGBM / TF-IDF).
+- [`docs/usage_examples.md`](docs/usage_examples.md) — 6 agent conversation flows (SAR / NCF / SASRec / LightGBM / TF-IDF / SAR Custom Data).
 - [`docs/CODEMAP.md`](docs/CODEMAP.md) — repository layout and module dependency graph.
 
 ### License
@@ -196,6 +204,8 @@ pip install -e ".[gpu,dev]"
 # 全部（谨慎）
 pip install -e ".[all]"
 ```
+
+> **注意**：`pyproject.toml` 已锁定 `numpy<2`，因为 recommenders v1.2.1 使用了 `np.NaN`（NumPy 2.0 已移除）。`pip install recommenders-ai` 会自动解析此约束。
 
 #### 2. Docker 构建
 
@@ -259,6 +269,12 @@ python skill/scripts/sar_movielens.py --size 100k --model-out
 MODEL_HANDLE=aabbccddeeff00112233445566778899
 ```
 
+在**自有数据**上训练 SAR（而非 Movielens）：
+
+```bash
+python skill/scripts/sar_custom.py --data your_ratings.parquet --col-user user_id --col-item item_id --col-rating score --top-k 10 --model-out
+```
+
 ### 环境变量
 
 | 变量 | 默认值 | 说明 |
@@ -296,7 +312,7 @@ pytest --cov=mcp_server --cov-report=term-missing
 ### 文档
 
 - [`docs/tools_reference.md`](docs/tools_reference.md) — 12 个 MCP 工具的签名、JSON 示例、错误码。
-- [`docs/usage_examples.md`](docs/usage_examples.md) — 5 个 agent 对话流程（SAR / NCF / SASRec / LightGBM / TF-IDF）。
+- [`docs/usage_examples.md`](docs/usage_examples.md) — 6 个 agent 对话流程（SAR / NCF / SASRec / LightGBM / TF-IDF / SAR 自有数据）。
 - [`docs/CODEMAP.md`](docs/CODEMAP.md) — 仓库目录结构与模块依赖关系。
 
 ### 许可

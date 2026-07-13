@@ -40,8 +40,9 @@ recommenders-ai/
 │   │   ├── 03_train.md
 │   │   ├── 04_evaluate.md
 │   │   └── 05_optimize.md
-│   ├── scripts/                      # 6 runnable training scripts (source-tagged)
+│   ├── scripts/                      # 7 runnable training scripts (source-tagged)
 │   │   ├── sar_movielens.py          # core — SARSingleNode
+│   │   ├── sar_custom.py             # core — SAR on user-supplied data (parquet/csv/tsv)
 │   │   ├── ncf_movielens.py          # gpu  — NCF (lazy import)
 │   │   ├── sasrec_amazon.py          # gpu  — SASREC (lazy import)
 │   │   ├── lightgbm_tinycriteo.py    # core — LightGBM + NumEncoder
@@ -66,8 +67,9 @@ recommenders-ai/
 │   ├── test_state.py                 # state.py: put/get df + model, TTL, version check
 │   ├── test_auth.py                  # auth.py: token verify + extract_bearer
 │   ├── test_http_transport.py        # http_transport.py: /health, /invoke, 401/404
-│   ├── test_script_help.py           # 6 scripts: --help exits 0
+│   ├── test_script_help.py           # 7 scripts: --help exits 0
 │   ├── test_smoke_movielens.py       # SAR 100k baseline alignment (nightly, @notebooks)
+│   ├── test_smoke_sar_custom.py     # SAR custom data smoke (nightly, @notebooks)
 │   ├── test_smoke_ncf_movielens.py   # NCF smoke (nightly, @gpu)
 │   └── test_smoke_sasrec_amazon.py   # SASRec smoke (nightly, @gpu)
 │
@@ -75,7 +77,7 @@ recommenders-ai/
     ├── ARCHITECTURE.md               # Architecture decisions (implementation-level)
     ├── IMPLEMENTATION_PLAN.md        # Planner phases + real symbol references
     ├── tools_reference.md            # 12 tool signatures + JSON examples + error codes
-    ├── usage_examples.md             # 5 agent conversation flows
+    ├── usage_examples.md             # 6 agent conversation flows
     └── CODEMAP.md                    # This file
 ```
 

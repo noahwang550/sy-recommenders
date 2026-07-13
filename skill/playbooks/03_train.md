@@ -5,7 +5,7 @@ Run one of the provided training scripts to fit a model and obtain a handle.
 
 ## Steps
 1. Choose a script from `skill/scripts/` matching your dataset and compute budget.
-2. For CPU: `sar_movielens.py`, `lightgbm_tinycriteo.py`, `tfidf_covid.py`.
+2. For CPU: `sar_movielens.py`, `sar_custom.py` (user data), `lightgbm_tinycriteo.py`, `tfidf_covid.py`.
 3. For GPU: `ncf_movielens.py`, `sasrec_amazon.py`.
 4. Run with `--model-out` to persist the trained model.
 

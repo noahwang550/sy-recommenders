@@ -377,7 +377,7 @@ def main():
 ```
 
 **测试要点**：
-- `test_script_help_exits_zero`：6 脚本 `--help` 退出码 0。
+- `test_script_help_exits_zero`：7 脚本 `--help` 退出码 0。
 - `test_sar_script_mock100_prints_metrics_json`：`--size mock100` 跑完 stdout 合法 JSON。
 - `test_sar_script_model_out_prints_handle`：`--model-out` → stdout 含 `MODEL_HANDLE=`。
 
@@ -494,7 +494,7 @@ def main():
 | 1 | `pyproject.toml`, `server.py`, `deps.py`, `schemas.py`, `state.py`(骨架), `serialization.py`(骨架), `__init__.py` | 可安装 + 空 server 握手 + MissingExtraError | `test_deps.py`, `test_server_registers` |
 | 2 | `skill/SKILL.md`, `playbooks/01..05.md` | 能力矩阵 + 5 playbook 互链 | 文档完备性 |
 | 3 | `serialization.py`(完整), `tools/{data,split,evaluate,ranking}.py`, `tools/__init__.py` | 12 工具可调 | `test_{data,split,eval,ranking}_tools.py` |
-| 4 | `skill/scripts/*.py`(6), `skill/snippets/*.md` | 6 脚本 `--help` + 跑通 | `test_script_help`, `test_sar_script_mock100` |
+| 4 | `skill/scripts/*.py`(7), `skill/snippets/*.md` | 7 脚本 `--help` + 跑通 | `test_script_help`, `test_sar_script_mock100` |
 | 5 | `tests/conftest.py`, `test_state.py`, `test_smoke_movielens.py`, `test_groups.yml`, pytest ini | 单测 + smoke 对齐基准 | 覆盖率 ≥80% |
 | 6 | `state.py`(完整), `http_transport.py`, `auth.py`, `Dockerfile`, `docker-compose.yml`, `.mcp.json` | 两档镜像 + HTTP 鉴权 + state 往返 | `test_state.py`, `test_http_auth.py` |
 | 7 | `README.md`, `docs/tools_reference.md`, `docs/usage_examples.md` | 中英双语 + 12 工具 reference + 5 对话示例 | 文档验收 |

@@ -1,8 +1,8 @@
 # Usage Examples / 使用示例
 
-Five end-to-end agent conversations demonstrating the full pipeline: natural language → MCP tool call → Skill script → metrics returned. Each example shows how an agent orchestrates the MCP tools and training scripts.
+Six end-to-end agent conversations demonstrating the full pipeline: natural language → MCP tool call → Skill script → metrics returned. Each example shows how an agent orchestrates the MCP tools and training scripts.
 
-五个端到端 agent 对话示例，演示完整流程：自然语言 → MCP 工具调用 → Skill 脚本 → 指标回传。每个示例展示 agent 如何编排 MCP 工具与训练脚本。
+六个端到端 agent 对话示例，演示完整流程：自然语言 → MCP 工具调用 → Skill 脚本 → 指标回传。每个示例展示 agent 如何编排 MCP 工具与训练脚本。
 
 ---
 
@@ -281,6 +281,54 @@ topk = model.recommend_top_k_items(new_papers_df, k=5)
   "distributional_coverage": 0.58
 }
 ```
+
+---
+
+## 6. SAR Custom Data — 用户自有数据训练
+
+**Agent 场景**：用户说"用我自己的评分数据训练一个 SAR 模型"。
+
+### Step 1 — 准备数据文件
+
+用户提供一个 parquet / csv / tsv 文件，包含至少 user、item、rating 三列（列名可自定义）：
+
+```bash
+# 确认数据文件格式
+python -c "import pandas as pd; df = pd.read_parquet('your_ratings.parquet'); print(df.head())"
+```
+
+### Step 2 — 训练（指定列名）
+
+```bash
+python skill/scripts/sar_custom.py \
+  --data your_ratings.parquet \
+  --col-user user_id --col-item item_id --col-rating score \
+  --ratio 0.75 --top-k 10 --model-out --state-root /app/state
+```
+
+输出：
+
+```json
+{
+  "precision": 0.28,
+  "recall": 0.14,
+  "ndcg": 0.31,
+  "map": 0.09
+}
+MODEL_HANDLE=e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9
+```
+
+### Step 3 — 后续会话复用模型
+
+```python
+from mcp_server.state import StateStore
+
+store = StateStore("/app/state")
+model = store.get_model("e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9")
+predictions = model.recommend_k_items(new_test_df, top_k=10, remove_seen=True)
+```
+
+**注意**：`sar_custom.py` 是唯一支持用户自有数据的训练脚本。其他 6 个脚本均硬编码使用特定内置数据集（Movielens / Criteo / Amazon / COVID）。
 
 ---
 

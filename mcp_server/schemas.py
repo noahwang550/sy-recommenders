@@ -9,7 +9,7 @@ not need to import the (heavy) upstream package at import time.
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 DEFAULT_USER_COL = "userID"
 DEFAULT_ITEM_COL = "itemID"
@@ -22,12 +22,25 @@ DEFAULT_K = 10
 class DataFramePayload(BaseModel):
     """A DataFrame transported as JSON (orient=split) or a file:// URI."""
 
+    # `populate_by_name` lets callers construct with either the python
+    # attribute (`schema_info=...`) or the serialised contract key
+    # (`schema=...`).  The field attribute is intentionally not named
+    # ``schema`` to avoid shadowing a member on pydantic v2's BaseModel
+    # (which raises a UserWarning on import); the ``serialization_alias``
+    # keeps the on-the-wire key as ``schema`` so the tool output contract
+    # is unchanged.
+    model_config = ConfigDict(populate_by_name=True)
+
     data: str = Field(
         ...,
         description="JSON string (orient=split) or file:// URI pointing to a parquet/json file.",
     )
     rows: Optional[int] = Field(None, description="Number of rows, provided as a hint.")
-    schema: Optional[dict] = Field(None, description="Schema/dtype map, provided as a hint.")
+    schema_info: Optional[dict] = Field(
+        None,
+        serialization_alias="schema",
+        description="Schema/dtype map, provided as a hint. Serialises to the `schema` key.",
+    )
 
 
 class MovielensInput(BaseModel):

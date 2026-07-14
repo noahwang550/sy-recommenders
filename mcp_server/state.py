@@ -21,7 +21,6 @@ from pathlib import Path
 import cloudpickle
 from filelock import FileLock
 
-
 DEFAULT_TTL = int(os.environ.get("STATE_TTL_SECONDS", "86400"))
 CLEANUP_INTERVAL_SECONDS = int(os.environ.get("STATE_CLEANUP_INTERVAL", "3600"))
 _last_cleanup = 0.0
@@ -31,6 +30,7 @@ _last_cleanup_lock = threading.Lock()
 def _recommenders_version() -> str:
     try:
         import recommenders
+
         return recommenders.__version__
     except Exception:  # pragma: no cover
         return "unknown"
@@ -176,3 +176,60 @@ class StateStore:
             return self._handle_dir(handle).exists()
         except ValueError:
             return False
+
+    def list_handles(self, kind: str | None = None) -> list[dict]:
+        self._maybe_cleanup()
+        result: list[dict] = []
+        now = datetime.now(timezone.utc)
+        for handle_dir in self.root.iterdir():
+            if not handle_dir.is_dir():
+                continue
+            try:
+                meta_path = handle_dir / "meta.json"
+                if not meta_path.exists():
+                    continue
+                meta = json.loads(meta_path.read_text())
+                expires_at = datetime.fromisoformat(meta["expires_at"])
+                if expires_at <= now:
+                    continue
+                if kind is not None and meta.get("kind") != kind:
+                    continue
+                result.append(
+                    {
+                        "handle": meta["handle"],
+                        "kind": meta["kind"],
+                        "created_at": meta["created_at"],
+                        "expires_at": meta["expires_at"],
+                        "recommends_version": meta["recommends_version"],
+                    }
+                )
+            except (OSError, KeyError, ValueError):
+                continue
+        return result
+
+    def describe_handle(self, handle: str) -> dict:
+        handle_dir = self._handle_dir(handle)
+        if not handle_dir.exists():
+            raise StateNotFoundError(handle)
+        meta = json.loads((handle_dir / "meta.json").read_text())
+        if (handle_dir / "data.parquet").exists():
+            size_bytes = (handle_dir / "data.parquet").stat().st_size
+        elif (handle_dir / "model.pkl").exists():
+            size_bytes = (handle_dir / "model.pkl").stat().st_size
+        else:
+            size_bytes = 0
+        return {
+            "handle": handle,
+            "kind": meta["kind"],
+            "created_at": meta["created_at"],
+            "expires_at": meta["expires_at"],
+            "recommends_version": meta["recommends_version"],
+            "size_bytes": size_bytes,
+        }
+
+    def delete_handle(self, handle: str) -> bool:
+        handle_dir = self._handle_dir(handle)
+        if not handle_dir.exists():
+            return False
+        shutil.rmtree(handle_dir)
+        return True

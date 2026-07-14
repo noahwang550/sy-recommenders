@@ -10,7 +10,7 @@ MCP server + Agent Skill wrapper for [Microsoft Recommenders](https://github.com
 
 `recommenders-ai` wraps the upstream [Recommenders](https://github.com/microsoft/recommenders) library behind two surfaces:
 
-1. **MCP server** — 12 atomic tools (data loading, splitting, evaluation, top-k ranking) exposed over **stdio** or **HTTP**, packaged into two Docker images (`core` / `gpu`).
+1. **MCP server** — 16 atomic tools (data loading, splitting, evaluation, top-k ranking, scoring, handle lifecycle) exposed over **stdio** or **HTTP**, packaged into two Docker images (`core` / `gpu`).
 2. **Agent Skill** — runnable training scripts, playbooks, and code snippets aligned with the upstream `examples/00_quick_start/` notebooks.
 
 Training produces **persistent model handles** via `state.py` (cloudpickle + parquet + meta.json, default TTL 24 h) so fitted models survive across conversations.
@@ -111,6 +111,26 @@ To train SAR on **your own data** instead of Movielens:
 python skill/scripts/sar_custom.py --data your_ratings.parquet --col-user user_id --col-item item_id --col-rating score --top-k 10 --model-out
 ```
 
+### Recommend loop (v0.2.0)
+
+Close the train→score loop purely over MCP:
+
+```
+1. Train:  python skill/scripts/sar_custom.py --data data.parquet --model-out
+           → prints MODEL_HANDLE=<id>
+
+2. Inspect: mcp describe_handle(handle=MODEL_HANDLE)
+           → {"kind": "model", "size_bytes": 2048576, ...}
+
+3. Score:  mcp recommend(model_handle=MODEL_HANDLE, user_data=user_df, top_k=10)
+           → {"uri": "...", "rows": 500, "skipped_user_count": 3, "model_handle": "..."}
+
+4. Evaluate: mcp eval_ranking(rating_true=test_df, rating_pred=recs_df, k=10)
+            → {"precision": 0.33, "recall": 0.18, "ndcg": 0.38, ...}
+```
+
+Model objects never cross the MCP boundary — only the handle id string is passed.
+
 ### Environment variables
 
 | Variable | Default | Description |
@@ -126,10 +146,10 @@ python skill/scripts/sar_custom.py --data your_ratings.parquet --col-user user_i
 ### Tests
 
 ```bash
-# CPU unit tests (PR gate scope, ~42 tests)
+# CPU unit tests (PR gate scope, 64 tests)
 pytest tests -m "not notebooks and not spark and not gpu" --disable-warnings
 
-# CPU smoke tests (needs network for real Movielens 100k)
+# CPU smoke tests (7 tests, needs network for real data)
 pytest tests -m "notebooks and not spark and not gpu" --disable-warnings
 
 # GPU smoke tests
@@ -147,7 +167,7 @@ See [`skill/SKILL.md`](skill/SKILL.md) for the capability matrix, playbook index
 
 ### Documentation
 
-- [`docs/tools_reference.md`](docs/tools_reference.md) — 12 MCP tool signatures with JSON examples and error codes.
+- [`docs/tools_reference.md`](docs/tools_reference.md) — 16 MCP tool signatures with JSON examples and error codes.
 - [`docs/usage_examples.md`](docs/usage_examples.md) — 6 agent conversation flows (SAR / NCF / SASRec / LightGBM / TF-IDF / SAR Custom Data).
 - [`docs/CODEMAP.md`](docs/CODEMAP.md) — repository layout and module dependency graph.
 
@@ -174,7 +194,7 @@ Copyright (c) Recommenders contributors.
 
 `recommenders-ai` 将上游 [Recommenders](https://github.com/microsoft/recommenders) 库封装在两个层面：
 
-1. **MCP server** — 12 个原子工具（数据加载 / 划分 / 评估 / top-k 排序），通过 **stdio** 或 **HTTP** 暴露，打包成两档 Docker 镜像（`core` / `gpu`）。
+1. **MCP server** — 16 个原子工具（数据加载 / 划分 / 评估 / top-k 排序 / 评分 / handle 生命周期），通过 **stdio** 或 **HTTP** 暴露，打包成两档 Docker 镜像（`core` / `gpu`）。
 2. **Agent Skill** — 可执行的训练脚本、playbook、代码片段，与上游 `examples/00_quick_start/` 笔记本对齐。
 
 训练产物通过 `state.py` 持久化为 **model handle**（cloudpickle + parquet + meta.json，默认 TTL 24 小时），跨会话可用。
@@ -275,6 +295,26 @@ MODEL_HANDLE=aabbccddeeff00112233445566778899
 python skill/scripts/sar_custom.py --data your_ratings.parquet --col-user user_id --col-item item_id --col-rating score --top-k 10 --model-out
 ```
 
+### 推荐闭环（v0.2.0）
+
+纯 MCP 调用闭合 训练→评分 闭环：
+
+```
+1. 训练：  python skill/scripts/sar_custom.py --data data.parquet --model-out
+          → 输出 MODEL_HANDLE=<id>
+
+2. 查看：  mcp describe_handle(handle=MODEL_HANDLE)
+          → {"kind": "model", "size_bytes": 2048576, ...}
+
+3. 评分：  mcp recommend(model_handle=MODEL_HANDLE, user_data=user_df, top_k=10)
+          → {"uri": "...", "rows": 500, "skipped_user_count": 3, "model_handle": "..."}
+
+4. 评估：  mcp eval_ranking(rating_true=test_df, rating_pred=recs_df, k=10)
+          → {"precision": 0.33, "recall": 0.18, "ndcg": 0.38, ...}
+```
+
+模型对象不跨 MCP 边界传递 — 仅传递 handle id 字符串。
+
 ### 环境变量
 
 | 变量 | 默认值 | 说明 |
@@ -290,10 +330,10 @@ python skill/scripts/sar_custom.py --data your_ratings.parquet --col-user user_i
 ### 测试
 
 ```bash
-# CPU 单测（PR gate 范围，约 42 条）
+# CPU 单测（PR gate 范围，64 条）
 pytest tests -m "not notebooks and not spark and not gpu" --disable-warnings
 
-# CPU smoke 测试（需要网络下载真实 Movielens 100k）
+# CPU smoke 测试（7 条，需要网络下载真实数据）
 pytest tests -m "notebooks and not spark and not gpu" --disable-warnings
 
 # GPU smoke 测试
@@ -311,7 +351,7 @@ pytest --cov=mcp_server --cov-report=term-missing
 
 ### 文档
 
-- [`docs/tools_reference.md`](docs/tools_reference.md) — 12 个 MCP 工具的签名、JSON 示例、错误码。
+- [`docs/tools_reference.md`](docs/tools_reference.md) — 16 个 MCP 工具的签名、JSON 示例、错误码。
 - [`docs/usage_examples.md`](docs/usage_examples.md) — 6 个 agent 对话流程（SAR / NCF / SASRec / LightGBM / TF-IDF / SAR 自有数据）。
 - [`docs/CODEMAP.md`](docs/CODEMAP.md) — 仓库目录结构与模块依赖关系。
 

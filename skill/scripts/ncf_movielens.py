@@ -2,6 +2,7 @@
 Source: examples/00_quick_start/ncf_movielens.ipynb
 依赖档: gpu
 """
+
 import argparse
 import json
 import logging
@@ -75,18 +76,48 @@ def main(argv=None):
         pred.extend(zip([user] * len(item_input), item_input, predictions))
 
     import pandas as pd
+
     pred_df = pd.DataFrame(pred, columns=[DEFAULT_USER_COL, DEFAULT_ITEM_COL, "prediction"])
 
     metrics = {
-        "precision": precision_at_k(test, pred_df, col_user=DEFAULT_USER_COL, col_item=DEFAULT_ITEM_COL, col_prediction="prediction", k=args.top_k),
-        "recall": recall_at_k(test, pred_df, col_user=DEFAULT_USER_COL, col_item=DEFAULT_ITEM_COL, col_prediction="prediction", k=args.top_k),
-        "ndcg": ndcg_at_k(test, pred_df, col_user=DEFAULT_USER_COL, col_item=DEFAULT_ITEM_COL, col_prediction="prediction", k=args.top_k),
-        "map": map_metric(test, pred_df, col_user=DEFAULT_USER_COL, col_item=DEFAULT_ITEM_COL, col_prediction="prediction", k=args.top_k),
+        "precision": precision_at_k(
+            test,
+            pred_df,
+            col_user=DEFAULT_USER_COL,
+            col_item=DEFAULT_ITEM_COL,
+            col_prediction="prediction",
+            k=args.top_k,
+        ),
+        "recall": recall_at_k(
+            test,
+            pred_df,
+            col_user=DEFAULT_USER_COL,
+            col_item=DEFAULT_ITEM_COL,
+            col_prediction="prediction",
+            k=args.top_k,
+        ),
+        "ndcg": ndcg_at_k(
+            test,
+            pred_df,
+            col_user=DEFAULT_USER_COL,
+            col_item=DEFAULT_ITEM_COL,
+            col_prediction="prediction",
+            k=args.top_k,
+        ),
+        "map": map_metric(
+            test,
+            pred_df,
+            col_user=DEFAULT_USER_COL,
+            col_item=DEFAULT_ITEM_COL,
+            col_prediction="prediction",
+            k=args.top_k,
+        ),
     }
     print(json.dumps(metrics, indent=2))
 
     if args.model_out:
         from mcp_server.state import StateStore
+
         store = StateStore(args.state_root)
         handle = store.put_model(model)
         print(f"MODEL_HANDLE={handle}")

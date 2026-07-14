@@ -6,15 +6,17 @@ Agent Skill for [Microsoft Recommenders](https://github.com/microsoft/recommende
 
 Use this skill when you want to build, evaluate, or deploy a recommendation pipeline with Microsoft Recommenders from an agent. It provides:
 
-- **12 atomic MCP tools** for data loading, splitting, evaluation, and top-k ranking (stdio or HTTP).
-- **7 runnable training scripts** derived from upstream `examples/00_quick_start/` notebooks (plus `sar_custom.py` for user-supplied data).
+- **16 atomic MCP tools** for data loading, splitting, evaluation, top-k ranking, scoring, and handle lifecycle (stdio or HTTP).
+- **8 runnable training scripts** derived from upstream `examples/00_quick_start/` notebooks (plus `sar_custom.py` for user-supplied data and `tfidf_custom.py` for TF-IDF cold-start).
 - **Persistent model handles** via `state.py` so trained models survive across conversations.
+- **Recommend loop** — `recommend` closes the train→score loop purely over MCP; model objects never cross the boundary.
 
 当需要从 agent 构建、评估或部署推荐管线时使用本 Skill。提供：
 
-- **12 个原子 MCP 工具**（数据加载 / 划分 / 评估 / top-k 排序），stdio 或 HTTP 双传输。
-- **7 个可执行训练脚本**，源自上游 `examples/00_quick_start/` 笔记本（另含 `sar_custom.py` 支持用户自有数据）。
+- **16 个原子 MCP 工具**（数据加载 / 划分 / 评估 / top-k 排序 / 评分 / handle 生命周期），stdio 或 HTTP 双传输。
+- **8 个可执行训练脚本**，源自上游 `examples/00_quick_start/` 笔记本（另含 `sar_custom.py` 支持用户自有数据，`tfidf_custom.py` 支持 TF-IDF 冷启动）。
 - **持久化模型 handle**，通过 `state.py` 实现跨会话复用。
+- **推荐闭环** — `recommend` 工具闭合 训练→评分 闭环，纯 MCP 调用；模型对象不跨边界传递。
 
 ---
 
@@ -29,6 +31,7 @@ Use this skill when you want to build, evaluate, or deploy a recommendation pipe
 | `tfidf_covid.py` | `tfidf_covid.ipynb` | core | no | — |
 | `eval_quickstart.py` | (various) | core | no | `load_movielens`, `split_random`, `eval_ranking` |
 | `sar_custom.py` | (new — adapts sar_movielens to user data) | core | no | `load_movielens`, `split_random`, `eval_ranking` |
+| `tfidf_custom.py` | (new — TF-IDF cold-start on user-supplied text data) | core | no | — |
 
 ### MCP tools × Image tier / MCP 工具 × 镜像档
 
@@ -40,6 +43,8 @@ Use this skill when you want to build, evaluate, or deploy a recommendation pipe
 | `split_random` / `split_chrono` / `split_stratified` / `split_numpy` | ✅ | ✅ |
 | `eval_rating` / `eval_classification` / `eval_ranking` / `eval_beyond_accuracy` | ✅ | ✅ |
 | `get_top_k` | ✅ | ✅ |
+| `recommend` | ✅ | ✅ |
+| `list_handles` / `describe_handle` / `delete_handle` | ✅ | ✅ |
 | SAR / RLRMC / TF-IDF / LightGBM / BPR (via scripts) | ✅ | ✅ |
 | NCF / SASRec / Wide&Deep / deeprec / newsrec (via scripts) | ❌ → `MissingExtraError` | ✅ |
 | Spark / ALS | ❌ Not supported | ❌ Not supported |
@@ -53,6 +58,7 @@ Use this skill when you want to build, evaluate, or deploy a recommendation pipe
 3. [`playbooks/03_train.md`](playbooks/03_train.md) — Pick a script and run training.
 4. [`playbooks/04_evaluate.md`](playbooks/04_evaluate.md) — Evaluate predictions or rankings.
 5. [`playbooks/05_optimize.md`](playbooks/05_optimize.md) — Sweep parameters and persist the best model.
+6. [`playbooks/06_recommend.md`](playbooks/06_recommend.md) — Score users against a persisted model (train→describe→recommend→evaluate loop).
 
 ---
 
@@ -158,3 +164,13 @@ Required flag: `--data`. Optional column overrides: `--col-user`, `--col-item`, 
 | `[dev]` | *(local only)* | black, pytest, pytest-cov, pytest-mock, httpx |
 | `[all]` | *(local only)* | Everything including `[experimental]` |
 | `[spark]` | ❌ Not in wrapper | ALS / Spark — intentionally excluded |
+
+> **numpy<2 pin**: `pyproject.toml` pins `numpy<2` because recommenders v1.2.1 uses `np.NaN` (removed in NumPy 2.0). Do not bump this pin.
+
+### v0.2.0 highlights
+
+- **`recommend` tool** closes the train→score loop purely over MCP — no model pickle crosses the tool boundary.
+- **Handle lifecycle tools** (`list_handles`, `describe_handle`, `delete_handle`) for inspecting and managing persisted artifacts.
+- **Typed error envelope** (`errors.py`) — all errors return `{"error": str, "code": str, "details": dict}` with HTTP status mapping (410/409/503/400/500).
+- **`tfidf_custom.py`** — cold-start TF-IDF training on user-supplied text data.
+- **Playbook 06** — end-to-end train→describe→recommend→evaluate loop.

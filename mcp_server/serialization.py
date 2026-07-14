@@ -17,7 +17,6 @@ from typing import Set
 
 import pandas as pd
 
-
 LARGE = 50_000  #: rows threshold above which we prefer file-backed transport
 
 # Registry of file paths produced by this process via ``maybe_cache``.
@@ -92,7 +91,7 @@ def df_from_json(payload: str) -> pd.DataFrame:
     if not isinstance(payload, str):
         raise TypeError("DataFrame payload must be a string (JSON or file:// URI)")
     if payload.startswith("file://"):
-        path = payload[len("file://"):]
+        path = payload[len("file://") :]
         resolved = _validate_file_path(path)
         if str(resolved).lower().endswith(".parquet"):
             return pd.read_parquet(resolved)

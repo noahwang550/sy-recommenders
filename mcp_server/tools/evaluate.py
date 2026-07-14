@@ -14,7 +14,9 @@ from mcp_server.serialization import df_from_json
 logger = logging.getLogger("recommenders-ai")
 
 
-def _common_kwargs(rating_true, rating_pred, col_user, col_item, col_rating=None, col_prediction=None):
+def _common_kwargs(
+    rating_true, rating_pred, col_user, col_item, col_rating=None, col_prediction=None
+):
     kwargs = {
         "rating_true": rating_true,
         "rating_pred": rating_pred,
@@ -85,7 +87,12 @@ def register_evaluate_tools(server):
         t = df_from_json(rating_true)
         p = df_from_json(rating_pred)
         api = load_eval_api()
-        common = {"col_user": col_user, "col_item": col_item, "col_prediction": col_prediction, "k": k}
+        common = {
+            "col_user": col_user,
+            "col_item": col_item,
+            "col_prediction": col_prediction,
+            "k": k,
+        }
         result = {
             "precision": float(api["precision_at_k"](t, p, **common)),
             "recall": float(api["recall_at_k"](t, p, **common)),

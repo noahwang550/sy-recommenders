@@ -87,7 +87,7 @@ Agent（读 SKILL.md 选 playbook + 脚本）
 
 ### 2.1 `mcp_server/server.py` — 入口与生命周期
 
-**职责**：解析 `MCP_TRANSPORT` env 选择 stdio / HTTP，构造 `Server("recommenders-mcp")`，注册 12 工具，启动事件循环。
+**职责**：解析 `MCP_TRANSPORT` env 选择 stdio / HTTP，构造 `Server("recommenders-mcp")`，注册 16 工具，启动事件循环。
 
 **设计决策**：
 
@@ -114,8 +114,11 @@ def _register_all() -> None:
     from mcp_server.tools.split import register_split_tools
     from mcp_server.tools.evaluate import register_evaluate_tools
     from mcp_server.tools.ranking import register_ranking_tools
+    from mcp_server.tools.score import register_score_tools
+    from mcp_server.tools.handles import register_handle_tools
     for fn in (register_data_tools, register_split_tools,
-               register_evaluate_tools, register_ranking_tools):
+               register_evaluate_tools, register_ranking_tools,
+               register_score_tools, register_handle_tools):
         fn(server)
 
 def main() -> None:
@@ -141,7 +144,7 @@ if __name__ == "__main__":
 ```
 
 **测试要点**：
-- `test_server_registers_twelve_tools`：构造 mock server，调 `_register_all()`，断言 `register_tool` 被调 12 次。
+- `test_server_registers_sixteen_tools`：构造 mock server，调 `_register_all()`，断言 `register_tool` 被调 16 次。
 - `test_main_unknown_transport_raises`：`MCP_TRANSPORT=foo` → `ValueError`。
 - stdio/HTTP 实际握手放 smoke（nightly），不进 PR gate。
 
@@ -296,13 +299,15 @@ class StateStore:
 
 ---
 
-### 2.5 `mcp_server/tools/*` — 12 工具分层
+### 2.5 `mcp_server/tools/*` — 16 工具分层
 
 **分层**：
 - `tools/data.py`：`load_movielens`、`load_criteo`、`load_mind`（3）
 - `tools/split.py`：`split_random`、`split_chrono`、`split_stratified`、`split_numpy`（4）
 - `tools/evaluate.py`：`eval_rating`、`eval_classification`、`eval_ranking`、`eval_beyond_accuracy`（4）
 - `tools/ranking.py`：`get_top_k`（1）
+- `tools/score.py`：`recommend`（1）
+- `tools/handles.py`：`list_handles`、`describe_handle`、`delete_handle`（3）
 
 **关键签名示例（`eval_ranking`）**：
 ```python
@@ -328,6 +333,85 @@ def eval_ranking(
 ```
 
 **测试要点（每工具独立 AAA 单测）**：见 IMPLEMENTATION_PLAN 测试矩阵。
+
+#### Score 工具（`recommend`）
+
+**职责**：凭持久化 model handle 对 user DataFrame 评分，返回 top-k 推荐。
+
+**关键签名**：
+```python
+@server.tool()
+def recommend(
+    model_handle: str,
+    user_data: str,
+    top_k: int = 10,
+    col_user: str = DEFAULT_USER_COL,
+    remove_seen: bool = True,
+    cache_path: str | None = None,
+) -> dict:
+```
+
+**设计决策**：
+
+| 决策 | 选择 | 理由 |
+|---|---|---|
+| 入参 | 仅 `model_handle: str`（不接受 pickle） | 模型对象永不跨 MCP 边界；只传 handle id 字符串（§5 安全边界） |
+| 分发逻辑 | `hasattr(model, "recommend_k_items")` → SAR；`hasattr(model, "recommend_top_k_items")` → TF-IDF | duck-type 分发，无需 meta 中硬编码模型类型 |
+| SAR 未知用户 | 通过 `model.user2index` 过滤不在训练集中的用户；返回 `skipped_user_count` | SAR 无法冷启动未知用户；显式报告跳过数而非静默丢弃 |
+| TF-IDF 冷启动 | `recommend_top_k_items` 直接调用；`skipped_user_count=0` | TF-IDF 是 item-to-item，不需要用户历史 |
+| 出参 | `{uri, rows, schema, skipped_user_count, model_handle}` | 与现有 DataFrame payload 格式一致；附加 skipped 计数与 handle 回显 |
+
+#### Handle 生命周期工具（`list_handles` / `describe_handle` / `delete_handle`）
+
+**职责**：列出、查看、删除 state.py 持久化的 handle。
+
+**关键签名**：
+```python
+def list_handles(kind: str | None = None) -> list[dict]
+def describe_handle(handle: str) -> dict
+def delete_handle(handle: str) -> dict  # returns {"handle": str, "deleted": bool}
+```
+
+**设计决策**：
+
+| 决策 | 选择 | 理由 |
+|---|---|---|
+| `list_handles` 清理 | 先调 `_maybe_cleanup()`（节流），再在内存中跳过已过期 handle | 避免返回过期但未清理的 handle |
+| `describe_handle` 不加载模型 | 仅读 `meta.json` + `stat` 文件大小；不调 `get_model` | 快速元数据查询；不触发 pickle 反序列化 |
+| `describe_handle` 无版本校验 | 只返回 `recommends_version` 字段，不校验 | 允许 agent 查看旧版本 handle 的元信息 |
+| `delete_handle` 幂等 | 不存在返回 `{"deleted": False}`；存在则 `rmtree` 返回 `{"deleted": True}` | 安全重复调用 |
+| handle 格式校验 | `_handle_dir` 校验 32 hex 字符 | 防止路径遍历（恶意 handle 如 `../etc`） |
+
+### 2.5a `mcp_server/errors.py` — 类型化 HTTP 错误信封
+
+**职责**：将领域异常映射为 HTTP 状态码 + 结构化 `{"error": str, "code": str, "details": dict}` 响应体。
+
+**错误映射表**：
+
+| 异常类型 | HTTP 状态码 | `code` 字符串 | `details` 字段 |
+|---|---|---|---|
+| `StateNotFoundError` | 410 | `"state_not_found"` | `{"handle": str}` |
+| `StateVersionError` | 409 | `"state_version_mismatch"` | `{"expected": str, "found": str}` |
+| `MissingExtraError` | 503 | `"missing_extra"` | `{"extra": str, "symbol": str}` |
+| `ValueError` | 400 | `"bad_request"` | `{}` |
+| `TypeError` | 400 | `"bad_request"` | `{}` |
+| 未知异常 | 500 | `"internal_error"` | `{}` |
+
+**设计决策**：
+
+| 决策 | 选择 | 理由 |
+|---|---|---|
+| `error` 字段 | `str(exc)` | 向后兼容 v0.1 的错误格式 |
+| `code` 字段 | 机器可读字符串 | agent 可据此做分支处理（如 410 → 重新训练） |
+| `details` 字段 | 类型特定 dict | 结构化信息供 agent 解析，不需要 regex 提取 |
+| 匹配顺序 | most-specific first；`StateVersionError` 在 `ValueError` 之前 | `StateVersionError` 是 `ValueError` 子类；isinstance 会匹配父类 |
+
+**测试要点**：
+- `test_to_response_state_not_found_returns_410`
+- `test_to_response_state_version_returns_409`
+- `test_to_response_missing_extra_returns_503`
+- `test_to_response_value_error_returns_400`
+- `test_to_response_unknown_returns_500`
 
 ---
 
@@ -441,6 +525,7 @@ def main():
 | `state.put_model` 写的 model.pkl（本仓库脚本写） | 信任（边界内） | 写入方是本仓库脚本调 recommenders.models.* 实例，非外部输入 |
 | MCP 工具入参的 DataFrame | **不**信任，禁 pickle | HTTP 下入参来自远端，pickle.load=任意代码执行；强制 JSON/parquet |
 | 外部用户上传 model.pkl | **不**信任 | get_model 只读 state.root，不读任意路径 |
+| `recommend` 工具的 `model_handle` 入参 | 仅接受 handle id 字符串 | **模型对象永不跨 MCP 边界**；`recommend` 内部调 `store.get_model` 加载模型，评分后丢弃引用 |
 
 ### 5.3 state 目录权限
 - `state.root` 由进程 owner 独占可写；compose 挂独立 volume。
@@ -461,8 +546,8 @@ def main():
 - 每工具可独立单测，纯函数入参 JSON 字符串，mock deps loader 即可隔离。
 - AAA + `pytest.approx`。
 - `deps.lru_cache` 便于 monkeypatch。
-- PR gate（CPU core 单测）：data/split/eval/ranking/state，~18 用例，≤15min。
-- nightly：smoke SAR/NCF/SASRec，对齐基准。
+- PR gate（CPU core 单测）：data/split/eval/ranking/score/handle/state/errors，~64 用例，≤15min。
+- nightly：smoke SAR/TF-IDF custom + notebook 对齐基准（7 smoke）。
 
 ### 6.2 可观测性
 - `logging.getLogger("recommenders-ai")`，`MCP_LOG_LEVEL` 可调。
@@ -498,6 +583,7 @@ def main():
 | 5 | `tests/conftest.py`, `test_state.py`, `test_smoke_movielens.py`, `test_groups.yml`, pytest ini | 单测 + smoke 对齐基准 | 覆盖率 ≥80% |
 | 6 | `state.py`(完整), `http_transport.py`, `auth.py`, `Dockerfile`, `docker-compose.yml`, `.mcp.json` | 两档镜像 + HTTP 鉴权 + state 往返 | `test_state.py`, `test_http_auth.py` |
 | 7 | `README.md`, `docs/tools_reference.md`, `docs/usage_examples.md` | 中英双语 + 12 工具 reference + 5 对话示例 | 文档验收 |
+| 8 | `tools/score.py`, `tools/handles.py`, `errors.py`, `skill/scripts/tfidf_custom.py`, `playbooks/06_recommend.md` | recommend 工具 + handle 生命周期 + 类型化错误信封 + TF-IDF 冷启动脚本 + playbook | `test_score_tools.py`, `test_handle_tools.py`, `test_errors.py`, `test_smoke_tfidf_custom.py` |
 
 **tdd-guide 执行顺序**：Phase 1 → 3（serialization 完整先行）→ 6（state 完整）→ 4（脚本依赖 state）→ 5 → 2 → 7。每 Phase 内 RED→GREEN→IMPROVE。
 
@@ -513,3 +599,5 @@ def main():
 6. handle id 必须 `secrets.token_hex`（不可预测）。
 7. `state._maybe_cleanup` 每小时节流，不每次操作扫盘。
 8. skill 脚本必须顶部标注 `Source: <notebook path>`。
+9. `recommend` 工具只接受 `model_handle: str`，模型对象永不跨 MCP 边界传递。
+10. `errors.to_response` 的异常匹配必须 most-specific first（`StateVersionError` 在 `ValueError` 之前）。

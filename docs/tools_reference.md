@@ -1,8 +1,8 @@
 # Tools Reference / 工具参考
 
-The MCP server exposes **12 atomic tools** grouped into four domains. All tools are stateless pure functions — training state lives in `state.py` handles, not in the server process.
+The MCP server exposes **16 atomic tools** grouped into six domains. All tools are stateless pure functions — training state lives in `state.py` handles, not in the server process.
 
-MCP server 暴露 **12 个原子工具**，分四个领域。所有工具均为无状态纯函数 — 训练状态由 `state.py` handle 管理，不驻留在 server 进程。
+MCP server 暴露 **16 个原子工具**，分六个领域。所有工具均为无状态纯函数 — 训练状态由 `state.py` handle 管理，不驻留在 server 进程。
 
 ---
 
@@ -13,6 +13,8 @@ MCP server 暴露 **12 个原子工具**，分四个领域。所有工具均为�
 - [Split tools (4) / 划分工具](#split-tools-4)
 - [Evaluate tools (4) / 评估工具](#evaluate-tools-4)
 - [Ranking tools (1) / 排序工具](#ranking-tools-1)
+- [Score tools (1) / 评分工具](#score-tools-1)
+- [Handle tools (3) / Handle 工具](#handle-tools-3)
 - [Error codes / 错误码](#error-codes)
 
 ---
@@ -361,9 +363,153 @@ Return the top-k items per user, adding a `rank` column.
 
 ---
 
+## Score tools (1)
+
+### `recommend`
+
+Score users against a persisted model handle and return top-k recommendations. The model is loaded from the state store by handle id — **model objects never cross the MCP boundary**.
+
+**Signature:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `model_handle` | `str` | *(required)* | Handle id returned by a training script's `--model-out` |
+| `user_data` | `str` | *(required)* | DataFrame JSON or `file://` URI of users to score |
+| `top_k` | `int` | `10` | Number of recommendations per user |
+| `col_user` | `str` | `"userID"` | User column name |
+| `remove_seen` | `bool` | `True` | Remove items already seen in training (SAR only) |
+| `cache_path` | `str \| None` | `None` | Directory for parquet caching of large result sets |
+
+**Returns:** `{"uri": str, "rows": int, "schema": dict, "skipped_user_count": int, "model_handle": str}`
+
+**Model dispatch:**
+
+| Model type | Detection | Scoring method | `skipped_user_count` |
+|---|---|---|---|
+| SAR | `hasattr(model, "recommend_k_items")` | `model.recommend_k_items(df, top_k, sort_top_k=True, remove_seen)` | Users absent from `model.user2index` are filtered out and counted |
+| TF-IDF | `hasattr(model, "recommend_top_k_items")` | `model.recommend_top_k_items(df, k=top_k)` | Always `0` (item-to-item, no user history needed) |
+
+**Notes:**
+
+- SAR cannot cold-start users not seen during training. Unknown users are silently skipped and reported via `skipped_user_count`.
+- If `model_handle` does not exist or has expired, returns `410 state_not_found`.
+- If the model was trained with a different `recommenders` version, returns `409 state_version_mismatch`.
+
+**Example:**
+
+```json
+// Request
+{"tool": "recommend", "arguments": {"model_handle": "aabbccddeeff00112233445566778899", "user_data": "<user_df_json>", "top_k": 10}}
+
+// Response
+{"uri": "...", "rows": 500, "schema": {"userID": "int64", "itemID": "int64", "prediction": "float64"}, "skipped_user_count": 3, "model_handle": "aabbccddeeff00112233445566778899"}
+```
+
+---
+
+## Handle tools (3)
+
+### `list_handles`
+
+List all live (non-expired) handles in the state store. Expired handles are cleaned (throttled) and skipped in-memory.
+
+**Signature:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `kind` | `str \| None` | `None` | Optional filter: `"df"` or `"model"` |
+
+**Returns:** `list[dict]` — each dict contains `handle`, `kind`, `created_at`, `expires_at`, `recommends_version`.
+
+**Example:**
+
+```json
+// Request
+{"tool": "list_handles", "arguments": {"kind": "model"}}
+
+// Response
+[{"handle": "aabb...", "kind": "model", "created_at": "2025-01-15T10:00:00+00:00", "expires_at": "2025-01-16T10:00:00+00:00", "recommends_version": "1.2.1"}]
+```
+
+---
+
+### `describe_handle`
+
+Read handle metadata without loading the model or checking version compatibility.
+
+**Signature:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `handle` | `str` | *(required)* | Handle id |
+
+**Returns:** `{"handle": str, "kind": str, "created_at": str, "expires_at": str, "recommends_version": str, "size_bytes": int}`
+
+**Notes:**
+
+- Does **not** load the pickle — only reads `meta.json` and file size.
+- Does **not** validate `recommends_version` — allows inspecting old handles.
+- Returns `410 state_not_found` if the handle does not exist.
+
+**Example:**
+
+```json
+// Request
+{"tool": "describe_handle", "arguments": {"handle": "aabbccddeeff00112233445566778899"}}
+
+// Response
+{"handle": "aabb...", "kind": "model", "created_at": "2025-01-15T10:00:00+00:00", "expires_at": "2025-01-16T10:00:00+00:00", "recommends_version": "1.2.1", "size_bytes": 2048576}
+```
+
+---
+
+### `delete_handle`
+
+Idempotent handle deletion.
+
+**Signature:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `handle` | `str` | *(required)* | Handle id |
+
+**Returns:** `{"handle": str, "deleted": bool}` — `deleted` is `false` if the handle did not exist.
+
+**Example:**
+
+```json
+// Request
+{"tool": "delete_handle", "arguments": {"handle": "aabbccddeeff00112233445566778899"}}
+
+// Response
+{"handle": "aabb...", "deleted": true}
+```
+
+---
+
 ## Error codes
 
-Tools raise structured errors that MCP clients can parse:
+Tools return structured errors that MCP clients can parse. All errors follow a typed envelope:
+
+```json
+{
+  "error": "human-readable exception message",
+  "code": "machine_readable_code",
+  "details": {"key": "value"}
+}
+```
+
+The `error` field is `str(exc)` for backward compatibility. `code` and `details` are additive fields for programmatic handling.
+
+### Error type mapping
+
+| Exception | HTTP Status | `code` | `details` | Resolution |
+|---|---|---|---|---|
+| `StateNotFoundError` | 410 | `"state_not_found"` | `{"handle": str}` | Re-run training script with `--model-out` |
+| `StateVersionError` | 409 | `"state_version_mismatch"` | `{"expected": str, "found": str}` | Use matching image version or re-train |
+| `MissingExtraError` | 503 | `"missing_extra"` | `{"extra": str, "symbol": str}` | Install matching extra or pull correct image tier |
+| `ValueError` / `TypeError` | 400 | `"bad_request"` | `{}` | Fix tool arguments |
+| Unknown exception | 500 | `"internal_error"` | `{}` | Check server logs |
 
 ### `MissingExtraError`
 
@@ -371,11 +517,11 @@ Raised when a tool requires an upstream extra that is not installed (e.g., GPU m
 
 ```json
 {
-  "error": "Symbol 'recommenders.models.ncf.ncf_singlenode.NCF' requires extra 'gpu'. Install with: pip install 'recommenders-ai[gpu]' or pull recommenders-mcp:gpu image."
+  "error": "Symbol 'recommenders.models.ncf.ncf_singlenode.NCF' requires extra 'gpu'. Install with: pip install 'recommenders-ai[gpu]' or pull recommenders-mcp:gpu image.",
+  "code": "missing_extra",
+  "details": {"extra": "gpu", "symbol": "recommenders.models.ncf.ncf_singlenode.NCF"}
 }
 ```
-
-**Fields:** `extra` (str), `symbol` (str), `hint` (str).
 
 **Resolution:** Install the matching extra or pull the correct Docker image tier.
 
@@ -385,7 +531,9 @@ Raised when a `state.py` handle does not exist or has expired (TTL elapsed).
 
 ```json
 {
-  "error": "StateNotFoundError: aabbccddeeff00112233445566778899"
+  "error": "aabbccddeeff00112233445566778899",
+  "code": "state_not_found",
+  "details": {"handle": "aabbccddeeff00112233445566778899"}
 }
 ```
 
@@ -397,11 +545,11 @@ Raised when a model checkpoint was written with a different `recommenders` versi
 
 ```json
 {
-  "error": "Model checkpoint expects recommenders 1.2.1, but server expects 2.0.0"
+  "error": "Model checkpoint expects recommenders 1.2.1, but server expects 2.0.0",
+  "code": "state_version_mismatch",
+  "details": {"expected": "2.0.0", "found": "1.2.1"}
 }
 ```
-
-**Fields:** `expected` (str), `found` (str).
 
 **Resolution:** Use a matching image version, or re-train the model.
 
@@ -417,20 +565,32 @@ AuthConfigError: HTTP transport requires MCP_HTTP_TOKEN environment variable. Se
 
 `file://` URIs pointing outside allowed roots are rejected:
 
-```
-ValueError: file:// path outside allowed roots: /etc/passwd
+```json
+{
+  "error": "file:// path outside allowed roots: /etc/passwd",
+  "code": "bad_request",
+  "details": {}
+}
 ```
 
 Non-absolute paths are also rejected:
 
-```
-ValueError: file:// URI must use an absolute path: relative/path.parquet
+```json
+{
+  "error": "file:// URI must use an absolute path: relative/path.parquet",
+  "code": "bad_request",
+  "details": {}
+}
 ```
 
 ### HTTP transport errors
 
-| Status code | Condition | Response body |
-|---|---|---|
-| `401` | Missing or invalid Bearer token | `{"error": "unauthorized"}` |
-| `404` | Unknown tool name | `{"error": "tool not found"}` |
-| `500` | Tool raised an exception | `{"error": "<exception message>"}` |
+| Status code | `code` | Condition | Response body |
+|---|---|---|---|
+| `401` | — | Missing or invalid Bearer token | `{"error": "unauthorized"}` |
+| `404` | — | Unknown tool name | `{"error": "tool not found"}` |
+| `410` | `"state_not_found"` | Handle expired or missing | Typed envelope (see above) |
+| `409` | `"state_version_mismatch"` | Model version mismatch | Typed envelope (see above) |
+| `503` | `"missing_extra"` | Required extra not installed | Typed envelope (see above) |
+| `400` | `"bad_request"` | Invalid arguments | Typed envelope (see above) |
+| `500` | `"internal_error"` | Tool raised unhandled exception | Typed envelope (see above) |

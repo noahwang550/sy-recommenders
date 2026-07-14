@@ -15,15 +15,19 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.mark.parametrize("script", [
-    "sar_movielens.py",
-    "sar_custom.py",
-    "ncf_movielens.py",
-    "sasrec_amazon.py",
-    "lightgbm_tinycriteo.py",
-    "tfidf_covid.py",
-    "eval_quickstart.py",
-])
+@pytest.mark.parametrize(
+    "script",
+    [
+        "sar_movielens.py",
+        "sar_custom.py",
+        "ncf_movielens.py",
+        "sasrec_amazon.py",
+        "lightgbm_tinycriteo.py",
+        "tfidf_covid.py",
+        "tfidf_custom.py",
+        "eval_quickstart.py",
+    ],
+)
 def test_script_help_exits_zero(script):
     path = SCRIPT_DIR / script
     result = subprocess.run([sys.executable, str(path), "--help"], capture_output=True, text=True)

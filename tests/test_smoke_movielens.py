@@ -16,6 +16,7 @@ class _NoInternet:
     def __bool__(self):
         if self._ok is None:
             import urllib.request
+
             try:
                 urllib.request.urlopen("https://files.grouplens.org", timeout=3)
                 self._ok = True

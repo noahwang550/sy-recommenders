@@ -14,6 +14,7 @@ class MockServer:
         def decorator(fn):
             self.tools[name or fn.__name__] = fn
             return fn
+
         return decorator
 
 

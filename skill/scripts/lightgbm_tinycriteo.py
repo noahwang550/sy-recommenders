@@ -2,6 +2,7 @@
 Source: examples/00_quick_start/lightgbm_tinycriteo.ipynb
 依赖档: core
 """
+
 import argparse
 import json
 import logging
@@ -38,6 +39,7 @@ def main(argv=None):
     y_train = train["label"].values if "label" in train.columns else train.iloc[:, -1].values
 
     import lightgbm as lgb
+
     model = lgb.LGBMClassifier(num_leaves=31, learning_rate=0.05, n_estimators=50)
     model.fit(X_train, y_train)
 

@@ -2,6 +2,7 @@
 Source: examples/00_quick_start/eval_quickstart.ipynb
 依赖档: core
 """
+
 import argparse
 import json
 import logging
@@ -16,7 +17,12 @@ from recommenders.evaluation.python_evaluation import (
     recall_at_k,
 )
 from recommenders.models.sar.sar_singlenode import SARSingleNode
-from recommenders.utils.constants import DEFAULT_ITEM_COL, DEFAULT_RATING_COL, DEFAULT_TIMESTAMP_COL, DEFAULT_USER_COL
+from recommenders.utils.constants import (
+    DEFAULT_ITEM_COL,
+    DEFAULT_RATING_COL,
+    DEFAULT_TIMESTAMP_COL,
+    DEFAULT_USER_COL,
+)
 
 logger = logging.getLogger("recommenders-ai")
 
@@ -51,10 +57,38 @@ def main(argv=None):
     topk = model.recommend_k_items(test, top_k=args.top_k, sort_top_k=True, remove_seen=True)
 
     metrics = {
-        "precision": precision_at_k(test, topk, col_user=DEFAULT_USER_COL, col_item=DEFAULT_ITEM_COL, col_prediction="prediction", k=args.top_k),
-        "recall": recall_at_k(test, topk, col_user=DEFAULT_USER_COL, col_item=DEFAULT_ITEM_COL, col_prediction="prediction", k=args.top_k),
-        "ndcg": ndcg_at_k(test, topk, col_user=DEFAULT_USER_COL, col_item=DEFAULT_ITEM_COL, col_prediction="prediction", k=args.top_k),
-        "map": map_metric(test, topk, col_user=DEFAULT_USER_COL, col_item=DEFAULT_ITEM_COL, col_prediction="prediction", k=args.top_k),
+        "precision": precision_at_k(
+            test,
+            topk,
+            col_user=DEFAULT_USER_COL,
+            col_item=DEFAULT_ITEM_COL,
+            col_prediction="prediction",
+            k=args.top_k,
+        ),
+        "recall": recall_at_k(
+            test,
+            topk,
+            col_user=DEFAULT_USER_COL,
+            col_item=DEFAULT_ITEM_COL,
+            col_prediction="prediction",
+            k=args.top_k,
+        ),
+        "ndcg": ndcg_at_k(
+            test,
+            topk,
+            col_user=DEFAULT_USER_COL,
+            col_item=DEFAULT_ITEM_COL,
+            col_prediction="prediction",
+            k=args.top_k,
+        ),
+        "map": map_metric(
+            test,
+            topk,
+            col_user=DEFAULT_USER_COL,
+            col_item=DEFAULT_ITEM_COL,
+            col_prediction="prediction",
+            k=args.top_k,
+        ),
     }
     print(json.dumps(metrics, indent=2))
     return 0

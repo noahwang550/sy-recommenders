@@ -2,6 +2,7 @@
 Source: examples/00_quick_start/tfidf_covid.ipynb
 依赖档: core
 """
+
 import argparse
 import json
 import logging

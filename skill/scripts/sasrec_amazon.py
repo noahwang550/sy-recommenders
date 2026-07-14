@@ -2,6 +2,7 @@
 Source: examples/00_quick_start/sasrec_amazon.ipynb
 依赖档: gpu
 """
+
 import argparse
 import json
 import logging
@@ -67,6 +68,7 @@ def main(argv=None):
 
     if args.model_out:
         from mcp_server.state import StateStore
+
         store = StateStore(args.state_root)
         handle = store.put_model(model)
         print(f"MODEL_HANDLE={handle}")

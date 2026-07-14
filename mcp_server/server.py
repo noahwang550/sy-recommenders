@@ -73,7 +73,9 @@ def _register_all() -> None:
     from mcp_server.tools import (
         register_data_tools,
         register_evaluate_tools,
+        register_handle_tools,
         register_ranking_tools,
+        register_score_tools,
         register_split_tools,
     )
 
@@ -82,6 +84,8 @@ def _register_all() -> None:
         register_split_tools,
         register_evaluate_tools,
         register_ranking_tools,
+        register_score_tools,
+        register_handle_tools,
     ):
         try:
             fn(server)

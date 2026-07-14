@@ -33,7 +33,9 @@ def register_split_tools(server):
             train, test = splits[0], splits[1]
         else:
             train, test = splits, None  # pragma: no cover - defensive
-        logger.info("split_random ratio=%s train_rows=%d test_rows=%d", ratio, len(train), len(test))
+        logger.info(
+            "split_random ratio=%s train_rows=%d test_rows=%d", ratio, len(train), len(test)
+        )
         return _split_result(train, test, cache_path)
 
     def split_chrono(
@@ -58,7 +60,9 @@ def register_split_tools(server):
             train, test = splits[0], splits[1]
         else:
             train, test = splits, None
-        logger.info("split_chrono ratio=%s train_rows=%d test_rows=%d", ratio, len(train), len(test))
+        logger.info(
+            "split_chrono ratio=%s train_rows=%d test_rows=%d", ratio, len(train), len(test)
+        )
         return _split_result(train, test, cache_path)
 
     def split_stratified(
@@ -83,7 +87,9 @@ def register_split_tools(server):
             train, test = splits[0], splits[1]
         else:
             train, test = splits, None
-        logger.info("split_stratified ratio=%s train_rows=%d test_rows=%d", ratio, len(train), len(test))
+        logger.info(
+            "split_stratified ratio=%s train_rows=%d test_rows=%d", ratio, len(train), len(test)
+        )
         return _split_result(train, test, cache_path)
 
     def split_numpy(
@@ -97,9 +103,12 @@ def register_split_tools(server):
         split_fn = load_splitters()["numpy"]
         train, test = split_fn(df.values, ratio=ratio, seed=seed)
         import pandas as pd
+
         train_df = pd.DataFrame(train, columns=df.columns)
         test_df = pd.DataFrame(test, columns=df.columns)
-        logger.info("split_numpy ratio=%s train_rows=%d test_rows=%d", ratio, len(train_df), len(test_df))
+        logger.info(
+            "split_numpy ratio=%s train_rows=%d test_rows=%d", ratio, len(train_df), len(test_df)
+        )
         return _split_result(train_df, test_df, cache_path)
 
     for name, fn in (

@@ -14,6 +14,7 @@ class MockServer:
         def decorator(fn):
             self.tools[name or fn.__name__] = fn
             return fn
+
         return decorator
 
 
@@ -26,11 +27,12 @@ def test_split_random_handles_list_return():
         return [train_df, test_df]
 
     import mcp_server.tools.split
+
     original = mcp_server.tools.split.load_splitters
     mcp_server.tools.split.load_splitters = lambda: {"random": fake_split}
     try:
         register_split_tools(server)
-        payload = "{\"columns\":[\"userID\",\"itemID\"],\"index\":[0,1,2],\"data\":[[1,10],[2,20],[3,30]]}"
+        payload = '{"columns":["userID","itemID"],"index":[0,1,2],"data":[[1,10],[2,20],[3,30]]}'
         result = server.tools["split_random"](payload, 0.75)
         assert result["train"]["rows"] == 2
         assert result["test"]["rows"] == 1
@@ -47,11 +49,14 @@ def test_split_chrono_handles_list_return():
         return [train_df, test_df]
 
     import mcp_server.tools.split
+
     original = mcp_server.tools.split.load_splitters
     mcp_server.tools.split.load_splitters = lambda: {"chrono": fake_split}
     try:
         register_split_tools(server)
-        payload = '{"columns":["userID","itemID","timestamp"],"index":[0,1],"data":[[1,10,1],[2,20,2]]}'
+        payload = (
+            '{"columns":["userID","itemID","timestamp"],"index":[0,1],"data":[[1,10,1],[2,20,2]]}'
+        )
         result = server.tools["split_chrono"](payload, 0.75)
         assert result["train"]["rows"] == 1
         assert result["test"]["rows"] == 1

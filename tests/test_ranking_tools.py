@@ -13,16 +13,19 @@ class MockServer:
         def decorator(fn):
             self.tools[name or fn.__name__] = fn
             return fn
+
         return decorator
 
 
 def test_get_top_k_adds_rank(monkeypatch):
     server = MockServer()
-    df = pd.DataFrame({
-        "userID": [1, 1, 2, 2],
-        "itemID": [10, 11, 20, 21],
-        "rating": [5.0, 3.0, 4.0, 2.0],
-    })
+    df = pd.DataFrame(
+        {
+            "userID": [1, 1, 2, 2],
+            "itemID": [10, 11, 20, 21],
+            "rating": [5.0, 3.0, 4.0, 2.0],
+        }
+    )
 
     def fake_get_top_k_items(dataframe, col_user, col_rating, k):
         top = dataframe.groupby(col_user).head(k).copy()

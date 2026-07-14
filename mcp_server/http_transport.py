@@ -48,9 +48,7 @@ class ToolRegistry:
             result[name] = {
                 "name": name,
                 "parameters": {
-                    name: {
-                        "type": "string" if param.annotation == str else "any"
-                    }
+                    name: {"type": "string" if param.annotation == str else "any"}
                     for name, param in sig.parameters.items()
                 },
             }
@@ -105,6 +103,9 @@ def build_app(server: Any | None = None) -> FastAPI:
             return JSONResponse(content={"result": result})
         except Exception as exc:  # noqa: BLE001
             logger.exception("Tool invocation failed: %s", name)
-            return JSONResponse(status_code=500, content={"error": str(exc)})
+            from mcp_server.errors import to_response
+
+            status, body = to_response(exc)
+            return JSONResponse(status_code=status, content=body)
 
     return app

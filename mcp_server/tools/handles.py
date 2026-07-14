@@ -2,6 +2,7 @@
 
 import logging
 import os
+from typing import Any
 
 from mcp_server.state import StateStore
 
@@ -12,7 +13,7 @@ def _state_store() -> StateStore:
     return StateStore(os.environ.get("STATE_ROOT", "./state"))
 
 
-def register_handle_tools(server) -> None:
+def register_handle_tools(server: Any) -> None:
     from mcp_server.http_transport import _TOOL_REGISTRY
 
     def list_handles(kind: str | None = None) -> list[dict]:

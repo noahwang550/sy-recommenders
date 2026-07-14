@@ -11,9 +11,11 @@ group_core_001:
   - tests/test_auth.py
   - tests/test_http_transport.py
   - tests/test_script_help.py
+  - tests/test_tfidf_covid.py
   - tests/test_errors.py
   - tests/test_score_tools.py
   - tests/test_handle_tools.py
+  - tests/test_type_annotations.py
 
 group_core_002:
   - tests/test_smoke_movielens.py

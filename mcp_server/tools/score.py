@@ -2,6 +2,7 @@
 
 import logging
 import os
+from typing import Any
 
 import pandas as pd
 
@@ -12,7 +13,7 @@ from mcp_server.state import StateStore
 logger = logging.getLogger("recommenders-ai")
 
 
-def _sar_known_users(model) -> set:
+def _sar_known_users(model: Any) -> set:
     user2index = getattr(model, "user2index", None)
     if user2index is None:
         raise ValueError("Model is not fitted; SAR user2index is None")
@@ -20,7 +21,7 @@ def _sar_known_users(model) -> set:
 
 
 def _score_sar(
-    model,
+    model: Any,
     user_df: pd.DataFrame,
     top_k: int,
     col_user: str,
@@ -36,13 +37,13 @@ def _score_sar(
     return recs, skipped
 
 
-def _score_tfidf(model, user_df: pd.DataFrame, top_k: int) -> tuple[pd.DataFrame, int]:
+def _score_tfidf(model: Any, user_df: pd.DataFrame, top_k: int) -> tuple[pd.DataFrame, int]:
     recs = model.recommend_top_k_items(user_df, k=top_k)
     return recs, 0
 
 
 def _score_with_model(
-    model,
+    model: Any,
     user_df: pd.DataFrame,
     top_k: int,
     col_user: str,
@@ -55,7 +56,7 @@ def _score_with_model(
     raise ValueError(f"Unsupported model type: {type(model).__name__}")
 
 
-def register_score_tools(server):
+def register_score_tools(server: Any) -> None:
     from mcp_server.http_transport import _TOOL_REGISTRY
 
     def recommend(

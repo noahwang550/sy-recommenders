@@ -19,6 +19,7 @@ logger = logging.getLogger("recommenders-ai")
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description="TF-IDF COVID-19 quick start")
     p.add_argument("--top-k", type=int, default=5)
+    p.add_argument("--col-item", default="itemID", help="Item column name")
     p.add_argument("--model-out", action="store_true")
     p.add_argument("--state-root", default="./state")
     return p.parse_args(argv)
@@ -38,8 +39,9 @@ def main(argv=None):
         print(json.dumps({"error": "COVID-19 data loader not available"}))
         return 1
 
-    model = TfidfRecommender()
-    model.fit(df["text"], df["itemID"])
+    col_item = args.col_item
+    model = TfidfRecommender(id_col=col_item)
+    model.fit(df["text"], df[col_item])
     topk = model.recommend_top_k_items(df, k=args.top_k)
 
     print(json.dumps({"status": "trained", "topk_shape": topk.shape}))

@@ -1,0 +1,50 @@
+name: CI
+
+# Fast PR-gate: CPU unit tests + black + numpy<2 guard.
+# Runs on every push to master and every pull request.
+# GPU / spark tiers are not runnable on free GitHub runners (no CUDA / no JDK)
+# and are intentionally not covered here.
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpu-tests:
+    name: CPU unit tests + black
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install (CPU dev)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Guard numpy<2 pin
+        # recommenders v1.2.1 uses np.NaN (removed in NumPy 2.0) -> SAR fit() crashes.
+        # pyproject pins numpy<2; this step fails loudly if a transitive dep leaks 2.x.
+        run: |
+          python -c "import numpy; v=numpy.__version__; assert int(v.split('.')[0]) < 2, f'numpy {v} leaked (needs <2: SAR fit uses np.NaN)'; print('numpy', v)"
+
+      - name: black --check
+        run: black --check .
+
+      - name: CPU unit tests + coverage (PR gate)
+        run: pytest tests -m "not notebooks and not spark and not gpu" --cov=mcp_server --cov-report=term-missing --disable-warnings --tb=short

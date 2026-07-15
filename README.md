@@ -1,5 +1,10 @@
 # recommenders-ai
 
+[![CI](https://github.com/noahwang550/sy-recommenders/actions/workflows/ci.yml/badge.svg)](https://github.com/noahwang550/sy-recommenders/actions/workflows/ci.yml)
+[![Smoke](https://github.com/noahwang550/sy-recommenders/actions/workflows/smoke.yml/badge.svg)](https://github.com/noahwang550/sy-recommenders/actions/workflows/smoke.yml)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+
 MCP server + Agent Skill wrapper for [Microsoft Recommenders](https://github.com/microsoft/recommenders) v1.2.1.
 
 ---

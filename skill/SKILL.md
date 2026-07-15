@@ -110,8 +110,8 @@ Install with: pip install 'recommenders-ai[gpu]' or pull recommenders-mcp:gpu im
 
 1. **Parse** the error message for the `extra` name (e.g., `gpu`).
 2. **Instruct** the user:
-   - **Docker**: `docker pull recommenders-mcp:gpu` or rebuild with `--build-arg COMPUTE=gpu`.
-   - **pip**: `pip install 'recommenders-ai[gpu]'`.
+   - **Docker** (recommended, works today): `docker pull recommenders-mcp:gpu` or rebuild with `--build-arg COMPUTE=gpu`.
+   - **pip** (from source — `recommenders-ai` is not yet on PyPI): `pip install 'git+https://github.com/noahwang550/sy-recommenders.git#egg=recommenders-ai[gpu]'`. Once published to PyPI this simplifies to `pip install 'recommenders-ai[gpu]'` (the form shown in the error message above).
 3. **Retry** the operation after the dependency is available.
 
 ### HTTP auth errors

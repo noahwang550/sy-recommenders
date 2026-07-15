@@ -1,0 +1,85 @@
+name: Release
+
+# Build a wheel + sdist on every version tag (v*) and attach them to a
+# GitHub Release with auto-generated notes. PyPI upload is intentionally
+# NOT automatic — it is outward-facing and hard to undo, so it stays a
+# manual workflow_dispatch step (see the commented `pypi` job below).
+#
+# Build runs on a Linux runner to avoid the CRLF / platform issues that
+# arise from building wheels on a Windows checkout.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build wheel + sdist and publish GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Build wheel + sdist
+        # Produces dist/recommenders_ai-<ver>-py3-none-any.whl and .tar.gz.
+        run: |
+          python -m build
+
+      - name: Upload artifacts to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # --- PyPI upload (manual, opt-in) -------------------------------------
+  # Not in the auto path. Trigger manually from the Actions tab once you
+  # decide to publish to PyPI. Requires the PYPI_API_TOKEN repo secret.
+  # A version already uploaded to PyPI cannot be re-uploaded (only yanked),
+  # which is why this stays gated behind a human decision.
+  #
+  # pypi:
+  #   name: Upload to PyPI
+  #   needs: build-release
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'workflow_dispatch'
+  #   environment: pypi
+  #   permissions:
+  #     id-token: write
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python 3.11
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.11"
+  #     - name: Install build tooling
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install build twine
+  #     - name: Build wheel + sdist
+  #       run: |
+  #         python -m build
+  #     - name: Publish to PyPI
+  #       run: |
+  #         twine upload dist/* --disable-progress-bar
+  #       env:
+  #         TWINE_USERNAME: __token__
+  #         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}

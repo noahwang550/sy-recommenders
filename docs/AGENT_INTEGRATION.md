@@ -47,11 +47,14 @@ docker build --build-arg COMPUTE=core -t recommenders-mcp:core .
 docker build --build-arg COMPUTE=gpu -t recommenders-mcp:gpu .
 ```
 
-Verify it runs:
+Verify it runs (imports the server and registers all tools — clean exit, no port opened):
 
 ```bash
-docker run --rm -e MCP_TRANSPORT=stdio recommenders-mcp:core recommenders-mcp --help
+docker run --rm recommenders-mcp:core python -c "from mcp_server.server import _register_all; from mcp_server.http_transport import _TOOL_REGISTRY; _register_all(); print(len(_TOOL_REGISTRY), 'tools registered')"
+# expected: 16 tools registered
 ```
+
+For a functional check (actually call a tool over stdio/HTTP), see Step 3 below.
 
 ### 2B. pip install (no Docker)
 

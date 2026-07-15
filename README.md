@@ -54,6 +54,9 @@ Or install directly from the GitHub repo (no clone needed):
 pip install "git+https://github.com/noahwang550/sy-recommenders.git"
 ```
 
+> Requires `git` on your `PATH` — pip shells out to `git` to clone the repo.
+> On a minimal image (e.g. `python:3.11-slim`) install git first (`apt-get install -y git`).
+
 Pre-built wheels are attached to each versioned GitHub Release (under
 [Releases](https://github.com/noahwang550/sy-recommenders/releases)) once a `v*`
 tag is cut — download the `.whl` and `pip install <file>`.
@@ -263,6 +266,9 @@ pip install -e ".[all]"
 ```bash
 pip install "git+https://github.com/noahwang550/sy-recommenders.git"
 ```
+
+> 需要 `PATH` 上有 `git` —— pip 会调用 `git` 来 clone 仓库。
+> 在极简镜像（如 `python:3.11-slim`）上需先装 git（`apt-get install -y git`）。
 
 每个版本号 `v*` tag 会在 GitHub Release（见
 [Releases](https://github.com/noahwang550/sy-recommenders/releases)）附带预构建 wheel ——

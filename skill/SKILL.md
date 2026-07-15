@@ -1,3 +1,8 @@
+---
+name: recommenders-ai
+description: Build, evaluate, and deploy recommendation pipelines with Microsoft Recommenders v1.2.1. Use when training or scoring recommenders (SAR, TF-IDF, LightGBM, NCF, SASRec, RLRMC, BPR) or running the train→recommend loop over MCP. Provides 16 atomic MCP tools, 8 training scripts, persistent model handles, and the cold-start→warm-user routing playbook.
+---
+
 # Recommenders AI Skill
 
 Agent Skill for [Microsoft Recommenders](https://github.com/microsoft/recommenders) v1.2.1 — training scripts, playbooks, and MCP tools behind a Dockerised server.

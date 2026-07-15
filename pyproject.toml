@@ -54,8 +54,10 @@ all = [
 recommenders-mcp = "mcp_server.server:main"
 
 [project.urls]
-Homepage = "https://github.com/microsoft/recommenders"
-Repository = "https://github.com/microsoft/recommenders"
+Homepage = "https://github.com/noahwang550/sy-recommenders"
+Repository = "https://github.com/noahwang550/sy-recommenders"
+Issues = "https://github.com/noahwang550/sy-recommenders/issues"
+Upstream = "https://github.com/microsoft/recommenders"
 
 [tool.setuptools.packages.find]
 where = ["."]

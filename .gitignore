@@ -12,3 +12,14 @@ state/
 *.swo
 .vscode/
 .idea/
+
+# Hypothesis (property-based testing) cache
+.hypothesis/
+
+# Local demo / scratch artifacts (MUJI demo, ad-hoc inputs, leftover scripts)
+muji_*
+*_input.parquet
+sar_input.parquet
+tfidf_input.parquet
+e2e_loops.py
+install.log

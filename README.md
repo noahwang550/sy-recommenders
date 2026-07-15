@@ -87,6 +87,8 @@ docker-compose up
 
 ### Quick start
 
+> The `.mcp.json` above references a **pre-built** image (`recommenders-mcp:core`). Build it once first (`docker build --build-arg COMPUTE=core -t recommenders-mcp:core .`), or see [`docs/AGENT_INTEGRATION.md`](docs/AGENT_INTEGRATION.md) for the local-pip variant.
+
 One sentence → SAR training + evaluation:
 
 ```bash
@@ -146,7 +148,7 @@ Model objects never cross the MCP boundary — only the handle id string is pass
 ### Tests
 
 ```bash
-# CPU unit tests (PR gate scope, 64 tests)
+# CPU unit tests (PR gate scope, 69 tests)
 pytest tests -m "not notebooks and not spark and not gpu" --disable-warnings
 
 # CPU smoke tests (7 tests, needs network for real data)
@@ -161,15 +163,23 @@ pytest --cov=mcp_server --cov-report=term-missing
 
 Tests are categorised by pytest markers defined in `pyproject.toml`: `notebooks`, `gpu`, `spark`, `experimental`. The wrapper maintains its own `tests/test_groups.yml` independent of upstream.
 
+### Connect to an agent platform
+
+The MCP server runs over **stdio** (MCP-native) or **HTTP** (custom REST). To wire it into Claude Code, Cursor, Continue, Cline, or a generic client, follow **[`docs/AGENT_INTEGRATION.md`](docs/AGENT_INTEGRATION.md)** — per-platform config snippets, the skill-loading steps, and a compatibility matrix.
+
+> **Transport note**: stdio is the path for MCP-native clients. The HTTP transport is a lightweight custom REST API (`/health`, `/tools`, `/invoke`) for programmatic/curl access — it is *not* the MCP streamable-HTTP/SSE protocol.
+
 ### Skill reference
 
-See [`skill/SKILL.md`](skill/SKILL.md) for the capability matrix, playbook index, and artifact handle semantics.
+See [`skill/SKILL.md`](skill/SKILL.md) for the capability matrix, playbook index, and artifact handle semantics. To load the Skill into a skill-aware platform (Claude Code), see the "Load the Agent Skill" section of `docs/AGENT_INTEGRATION.md`.
 
 ### Documentation
 
+- [`docs/AGENT_INTEGRATION.md`](docs/AGENT_INTEGRATION.md) — install & use on Claude Code / Cursor / Continue / Cline / generic clients.
 - [`docs/tools_reference.md`](docs/tools_reference.md) — 16 MCP tool signatures with JSON examples and error codes.
 - [`docs/usage_examples.md`](docs/usage_examples.md) — 6 agent conversation flows (SAR / NCF / SASRec / LightGBM / TF-IDF / SAR Custom Data).
 - [`docs/CODEMAP.md`](docs/CODEMAP.md) — repository layout and module dependency graph.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — invariants, state-store lifecycle, typed error envelope.
 
 ### License
 
@@ -271,6 +281,8 @@ docker-compose up
 
 ### 快速开始
 
+> 上面的 `.mcp.json` 引用的是**已构建**的镜像（`recommenders-mcp:core`）。请先构建一次（`docker build --build-arg COMPUTE=core -t recommenders-mcp:core .`），或参考 [`docs/AGENT_INTEGRATION.md`](docs/AGENT_INTEGRATION.md) 使用本地 pip 方案。
+
 一句话 → SAR 训练 + 评估：
 
 ```bash
@@ -330,7 +342,7 @@ python skill/scripts/sar_custom.py --data your_ratings.parquet --col-user user_i
 ### 测试
 
 ```bash
-# CPU 单测（PR gate 范围，64 条）
+# CPU 单测（PR gate 范围，69 条）
 pytest tests -m "not notebooks and not spark and not gpu" --disable-warnings
 
 # CPU smoke 测试（7 条，需要网络下载真实数据）
@@ -345,15 +357,23 @@ pytest --cov=mcp_server --cov-report=term-missing
 
 测试按 pytest marker 分类，定义于 `pyproject.toml`：`notebooks`、`gpu`、`spark`、`experimental`。wrapper 维护独立的 `tests/test_groups.yml`，与上游完全隔离。
 
+### 接入 agent 平台
+
+MCP server 通过 **stdio**（MCP 原生）或 **HTTP**（自定义 REST）暴露。要接入 Claude Code、Cursor、Continue、Cline 或通用客户端，请按 **[`docs/AGENT_INTEGRATION.md`](docs/AGENT_INTEGRATION.md)** 操作 —— 含各平台配置片段、Skill 加载步骤与兼容性矩阵。
+
+> **传输说明**：stdio 适用于 MCP 原生客户端；HTTP 传输是一套轻量自定义 REST API（`/health`、`/tools`、`/invoke`），面向脚本/curl 访问，**并非** MCP 的 streamable-HTTP/SSE 协议。
+
 ### Skill 参考
 
-详见 [`skill/SKILL.md`](skill/SKILL.md)：能力矩阵、playbook 索引、训练产物 handle 语义。
+详见 [`skill/SKILL.md`](skill/SKILL.md)：能力矩阵、playbook 索引、训练产物 handle 语义。要在支持 Skill 的平台（如 Claude Code）加载本 Skill，见 `docs/AGENT_INTEGRATION.md` 的"加载 Agent Skill"一节。
 
 ### 文档
 
+- [`docs/AGENT_INTEGRATION.md`](docs/AGENT_INTEGRATION.md) — 在 Claude Code / Cursor / Continue / Cline / 通用客户端上安装与使用。
 - [`docs/tools_reference.md`](docs/tools_reference.md) — 16 个 MCP 工具的签名、JSON 示例、错误码。
 - [`docs/usage_examples.md`](docs/usage_examples.md) — 6 个 agent 对话流程（SAR / NCF / SASRec / LightGBM / TF-IDF / SAR 自有数据）。
 - [`docs/CODEMAP.md`](docs/CODEMAP.md) — 仓库目录结构与模块依赖关系。
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — 不变量、state-store 生命周期、类型化错误信封。
 
 ### 许可
 
